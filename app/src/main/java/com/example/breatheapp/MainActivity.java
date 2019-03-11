@@ -1,5 +1,6 @@
 package com.example.breatheapp;
 
+import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
@@ -18,8 +19,8 @@ import android.view.MenuItem;
 
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener,
-                    TodoFragment.OnListFragmentInteractionListener,
-                    HomeFragment.OnFragmentInteractionListener{
+        TodoFragment.OnListFragmentInteractionListener,
+        HomeFragment.OnFragmentInteractionListener{
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -71,6 +72,8 @@ public class MainActivity extends AppCompatActivity
 
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
+            Intent settingPage=new Intent(MainActivity.this,SettingsActivity.class);
+            startActivity(settingPage);
             return true;
         }
 
