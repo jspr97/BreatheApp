@@ -60,13 +60,13 @@ public class TodoFragment extends Fragment {
         tasks.add(new Task("Sleep", "3:00AM"));
         tasks.add(new Task("Rave", "4:00AM"));
         tasks.add(new Task("Repeat", "5:00AM"));
-        tasks.add(new Task("Fap", "6:00AM"));
-        tasks.add(new Task("Fap", "7:00AM"));
-        tasks.add(new Task("Fap", "8:00AM"));
-        tasks.add(new Task("Fap", "9:00AM"));
-        tasks.add(new Task("Fap", "10:00AM"));
-        tasks.add(new Task("Fap", "11:00AM"));
-        tasks.add(new Task("Fap", "12:00AM"));
+        tasks.add(new Task("1", "6:00AM"));
+        tasks.add(new Task("2", "7:00AM"));
+        tasks.add(new Task("3", "8:00AM"));
+        tasks.add(new Task("4", "9:00AM"));
+        tasks.add(new Task("5", "10:00AM"));
+        tasks.add(new Task("6", "11:00AM"));
+        tasks.add(new Task("7", "12:00AM"));
     }
 
     @Override

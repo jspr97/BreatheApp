@@ -6,32 +6,28 @@
     <group android:checkableBehavior="single">
         <item
             android:id="@+id/nav_home"
-            android:icon="@drawable/ic_menu_gallery"
+            android:icon="@drawable/ic_home_black_24dp"
             android:title="Home" />
         <item
             android:id="@+id/nav_todo"
-            android:icon="@drawable/ic_menu_gallery"
+            android:icon="@drawable/ic_view_list_black_24dp"
             android:title="To do list" />
         <item
-            android:id="@+id/nav_timetable"
-            android:icon="@android:drawable/ic_menu_my_calendar"
-            android:title="Timetable" />
+            android:id="@+id/nav_calendar"
+            android:icon="@drawable/ic_event_black_24dp"
+            android:title="Calendar" />
         <item
             android:id="@+id/nav_shared"
-            android:icon="@drawable/ic_menu_slideshow"
+            android:icon="@drawable/ic_folder_shared_black_24dp"
             android:title="Shared" />
     </group>
 
-    <item android:title="Communicate">
+    <item android:title="Miscellaneous">
         <menu>
             <item
-                android:id="@+id/nav_share"
-                android:icon="@drawable/ic_menu_share"
-                android:title="Share" />
-            <item
-                android:id="@+id/nav_send"
-                android:icon="@drawable/ic_menu_send"
-                android:title="Send" />
+                android:id="@+id/nav_settings"
+                android:icon="@drawable/ic_menu_manage"
+                android:title="Settings" />
         </menu>
     </item>
 

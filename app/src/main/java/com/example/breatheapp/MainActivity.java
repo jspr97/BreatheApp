@@ -95,14 +95,13 @@ public class MainActivity extends AppCompatActivity
         } else if (id == R.id.nav_todo) {
             fragmentClass = TodoFragment.class;
             setTitle("To Do List");
-        } else if (id == R.id.nav_timetable) {
+        } else if (id == R.id.nav_calendar) {
             setTitle("Timetable");
         } else if (id == R.id.nav_shared) {
 
-        } else if (id == R.id.nav_share) {
-
-        } else if (id == R.id.nav_send) {
-
+        } else if (id == R.id.nav_settings) {
+            Intent intent = new Intent(this, SettingsActivity.class);
+            startActivity(intent);
         }
 
         try {
