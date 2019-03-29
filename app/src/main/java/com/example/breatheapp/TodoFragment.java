@@ -1,7 +1,11 @@
 package com.example.breatheapp;
 
+import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
 import android.os.Bundle;
+import android.support.design.widget.FloatingActionButton;
+import android.support.design.widget.Snackbar;
 import android.support.v4.app.Fragment;
 import android.support.v7.widget.DividerItemDecoration;
 import android.support.v7.widget.GridLayoutManager;
@@ -10,6 +14,7 @@ import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Toast;
 
 import java.util.ArrayList;
 
@@ -21,12 +26,15 @@ import java.util.ArrayList;
  */
 public class TodoFragment extends Fragment {
 
+    public static final int REQUEST_ADD_TASK = 100;
+
     // TODO: Customize parameter argument names
     private static final String ARG_COLUMN_COUNT = "column-count";
     // TODO: Customize parameters
     private int mColumnCount = 1;
     private OnListFragmentInteractionListener mListener;
-
+    private RecyclerView recyclerView;
+    private TodoRecyclerViewAdapter mAdapter;
     private ArrayList<Task> tasks;
 
     /**
@@ -56,17 +64,10 @@ public class TodoFragment extends Fragment {
 
         // TEST
         tasks = new ArrayList<Task>();
-        tasks.add(new Task("Eat", "1:00AM"));
-        tasks.add(new Task("Sleep", "3:00AM"));
-        tasks.add(new Task("Rave", "4:00AM"));
-        tasks.add(new Task("Repeat", "5:00AM"));
-        tasks.add(new Task("1", "6:00AM"));
-        tasks.add(new Task("2", "7:00AM"));
-        tasks.add(new Task("3", "8:00AM"));
-        tasks.add(new Task("4", "9:00AM"));
-        tasks.add(new Task("5", "10:00AM"));
-        tasks.add(new Task("6", "11:00AM"));
-        tasks.add(new Task("7", "12:00AM"));
+        tasks.add(new Task("Eat","", "1:00AM"));
+        tasks.add(new Task("Sleep", "", "3:00AM"));
+        tasks.add(new Task("Rave", "","4:00AM"));
+        tasks.add(new Task("Repeat", "", "5:00AM"));
     }
 
     @Override
@@ -75,21 +76,31 @@ public class TodoFragment extends Fragment {
         View view = inflater.inflate(R.layout.fragment_todo_list, container, false);
 
         // Set the adapter
-        if (view instanceof RecyclerView) {
-            Context context = view.getContext();
-            RecyclerView recyclerView = (RecyclerView) view;
+        Context context = view.getContext();
+        recyclerView = view.findViewById(R.id.list);
 
-            // add dividers to recyclerview items
+        // add dividers to recyclerview items
+        recyclerView.setLayoutManager(new LinearLayoutManager(context));
+        recyclerView.addItemDecoration(new DividerItemDecoration(context, DividerItemDecoration.VERTICAL));
+
+        if (mColumnCount <= 1) {
             recyclerView.setLayoutManager(new LinearLayoutManager(context));
-            recyclerView.addItemDecoration(new DividerItemDecoration(context, DividerItemDecoration.VERTICAL));
-
-            if (mColumnCount <= 1) {
-                recyclerView.setLayoutManager(new LinearLayoutManager(context));
-            } else {
-                recyclerView.setLayoutManager(new GridLayoutManager(context, mColumnCount));
-            }
-            recyclerView.setAdapter(new TodoRecyclerViewAdapter(tasks, mListener));
+        } else {
+            recyclerView.setLayoutManager(new GridLayoutManager(context, mColumnCount));
         }
+        mAdapter = new TodoRecyclerViewAdapter(tasks, mListener);
+        recyclerView.setAdapter(mAdapter);
+
+        // set up floating action button
+        FloatingActionButton myFab = (FloatingActionButton) view.findViewById(R.id.fab);
+        myFab.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                // go to Add Task activity
+                Intent intent = new Intent(getActivity(), AddTaskActivity.class);
+                startActivityForResult(intent, REQUEST_ADD_TASK);
+            }
+        });
+
         return view;
     }
 
@@ -109,6 +120,21 @@ public class TodoFragment extends Fragment {
     public void onDetach() {
         super.onDetach();
         mListener = null;
+    }
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if (requestCode == REQUEST_ADD_TASK && resultCode == Activity.RESULT_OK) {
+            String name = data.getStringExtra("name");
+            String date = data.getStringExtra("date");
+            String time = data.getStringExtra("time");
+            Task task = new Task(name, date, time);
+            tasks.add(task);
+            mAdapter.notifyItemInserted(tasks.size()-1);
+            Snackbar.make(getView(), "Task added", Snackbar.LENGTH_SHORT).show();
+        }
     }
 
     /**

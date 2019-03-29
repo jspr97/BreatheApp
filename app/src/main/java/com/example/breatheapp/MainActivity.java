@@ -96,7 +96,8 @@ public class MainActivity extends AppCompatActivity
             fragmentClass = TodoFragment.class;
             setTitle("To Do List");
         } else if (id == R.id.nav_calendar) {
-            setTitle("Timetable");
+            Intent calendar = new Intent(this, CalendarActivity.class);
+            startActivity(calendar);
         } else if (id == R.id.nav_shared) {
 
         } else if (id == R.id.nav_settings) {

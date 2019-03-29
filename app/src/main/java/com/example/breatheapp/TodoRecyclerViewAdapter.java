@@ -1,9 +1,12 @@
 package com.example.breatheapp;
 
+import android.graphics.Paint;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.CheckBox;
+import android.widget.CompoundButton;
 import android.widget.TextView;
 
 import com.example.breatheapp.TodoFragment.OnListFragmentInteractionListener;
@@ -34,7 +37,10 @@ public class TodoRecyclerViewAdapter extends RecyclerView.Adapter<TodoRecyclerVi
     public void onBindViewHolder(final ViewHolder holder, int position) {
         holder.mItem = mValues.get(position);
         holder.mTaskView.setText(mValues.get(position).getName());
-        holder.mDateView.setText(mValues.get(position).getDate());
+        if (mValues.get(position).getTime() == null)
+            holder.mTimeView.setVisibility(View.GONE);
+        else
+            holder.mTimeView.setText(mValues.get(position).getTime());
 
         holder.mView.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -43,6 +49,8 @@ public class TodoRecyclerViewAdapter extends RecyclerView.Adapter<TodoRecyclerVi
                     // Notify the active callbacks interface (the activity, if the
                     // fragment is attached to one) that an item has been selected.
                     mListener.onListFragmentInteraction(holder.mItem);
+                    CheckBox checkBox = v.findViewById(R.id.checkBox);
+                    checkBox.setChecked(!checkBox.isChecked());
                 }
             }
         });
@@ -55,15 +63,27 @@ public class TodoRecyclerViewAdapter extends RecyclerView.Adapter<TodoRecyclerVi
 
     public class ViewHolder extends RecyclerView.ViewHolder {
         public final View mView;
+        public final CheckBox mCheckBox;
         public final TextView mTaskView;
-        public final TextView mDateView;
+        public final TextView mTimeView;
         public Task mItem;
 
         public ViewHolder(View view) {
             super(view);
             mView = view;
-            mTaskView = (TextView) view.findViewById(R.id.task);
-            mDateView = (TextView) view.findViewById(R.id.time);
+            mCheckBox = view.findViewById(R.id.checkBox);
+            mTaskView = view.findViewById(R.id.task);
+            mTimeView = view.findViewById(R.id.time);
+
+            mCheckBox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+                @Override
+                public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                    if (isChecked)
+                        mTaskView.setPaintFlags(mTaskView.getPaintFlags() | Paint.STRIKE_THRU_TEXT_FLAG);
+                    else
+                        mTaskView.setPaintFlags(mTaskView.getPaintFlags() & (~Paint.STRIKE_THRU_TEXT_FLAG));
+                }
+            });
         }
 
         @Override

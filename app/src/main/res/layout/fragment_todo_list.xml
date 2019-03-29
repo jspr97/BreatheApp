@@ -16,4 +16,17 @@
         app:layoutManager="LinearLayoutManager"
         tools:context=".TodoFragment"
         tools:listitem="@layout/fragment_todo" />
+
+    <android.support.design.widget.FloatingActionButton
+        android:id="@+id/fab"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentEnd="true"
+        android:layout_alignParentBottom="true"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="16dp"
+        android:clickable="true"
+        android:src="@drawable/ic_add_white_24dp"
+        app:backgroundTint="@color/colorAccent"
+        app:elevation="4dp" />
 </RelativeLayout>
