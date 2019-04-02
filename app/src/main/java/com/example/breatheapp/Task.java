@@ -1,16 +1,17 @@
 package com.example.breatheapp;
 
-import java.util.Date;
-
 public class Task {
-    private String name;
-    private String date;
-    private String time;
+    private String name, date, time, user;
+    private boolean done = false;
 
-    public Task(String name, String date, String time) {
+    public  Task() {}
+
+    public Task(String name, String date, String time, String user, boolean done) {
         this.name = name;
         this.date = date;
         this.time = time;
+        this.user = user;
+        this.done = done;
     }
 
     public String getName() { return name; }
@@ -19,4 +20,8 @@ public class Task {
     public void setDate(String date) { this.date = date; }
     public String getTime() { return time; }
     public void setTime(String time) { this.time = time; }
+    public String getUser() { return user; }
+    public void setUser(String user) { this.user = user; }
+    public boolean getDone() { return done; }
+    public void setDone(boolean done) { this.done = done; }
 }

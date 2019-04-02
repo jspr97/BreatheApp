@@ -15,7 +15,7 @@
         android:scrollbars="none"
         app:layoutManager="LinearLayoutManager"
         tools:context=".TodoFragment"
-        tools:listitem="@layout/fragment_todo" />
+        tools:listitem="@layout/task_item" />
 
     <android.support.design.widget.FloatingActionButton
         android:id="@+id/fab"

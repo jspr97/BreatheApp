@@ -1,31 +1,42 @@
 package com.example.breatheapp;
 
-import android.app.Activity;
 import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
-import android.content.Intent;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.support.design.widget.AppBarLayout;
 import android.support.design.widget.CollapsingToolbarLayout;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.View;
 import android.widget.DatePicker;
 import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.TimePicker;
+
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.firebase.firestore.CollectionReference;
+import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 
 public class AddTaskActivity extends AppCompatActivity {
 
+    private static final String TAG = "AddTaskActivity";
     private CollapsingToolbarLayout collapsingToolbar;
     private AppBarLayout appBar;
     private EditText editTaskName;
     private TextView textDate, textTime;
+    private LinearLayout dateSelect;
+    private FirebaseFirestore db;
+    private String selectedDate, selectedTime;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -65,34 +76,49 @@ public class AddTaskActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 // save task details
-                String name = editTaskName.getText().toString();
+                String name = editTaskName.getText().toString().trim();
                 if (name.isEmpty()) {
                     Snackbar.make(view, "Task name is required", Snackbar.LENGTH_SHORT).show();
                 } else {
-                    String date = textDate.getText().toString();
-                    String time = textTime.getText().toString();
-
-                    // check if date or time is not set
-                    if (date.equals("-")) {
-                        date = null;
-                    }
-                    if (time.equals("-")) {
-                        time = null;
-                    }
-
-                    Intent intent = new Intent();
-                    intent.putExtra("name", name);
-                    intent.putExtra("date", date);
-                    intent.putExtra("time", time);
-                    setResult(Activity.RESULT_OK, intent);
+                    Task newTask = new Task(name, selectedDate, selectedTime, "user", false);
+                    CollectionReference ref = FirebaseFirestore.getInstance().collection("tasks");
+                    ref.add(newTask)
+                            .addOnSuccessListener(new OnSuccessListener<DocumentReference>() {
+                                @Override
+                                public void onSuccess(DocumentReference documentReference) {
+                                    Log.i(TAG, "Added to database");
+                                }
+                            })
+                            .addOnFailureListener(new OnFailureListener() {
+                                @Override
+                                public void onFailure(@NonNull Exception e) {
+                                    Log.i(TAG, "Fail to add");
+                                }
+                            });
                     finish();
                 }
             }
         });
 
+        // initialize fields
         editTaskName = findViewById(R.id.taskName);
+        dateSelect = findViewById(R.id.dateSelect);
         textDate = findViewById(R.id.textDate);
-        textTime = findViewById(R.id.textTime);
+        SimpleDateFormat sdf = new SimpleDateFormat("dd MMM yyyy");
+        selectedDate = sdf.format(Calendar.getInstance().getTime()); // default today's date
+        textDate.setText(selectedDate);
+        textTime = findViewById(R.id.time);
+
+        int requestCode = getIntent().getIntExtra("request_code", -1);
+        if (requestCode == CalendarActivity.REQUEST_ADD_TASK){
+            textDate.setText(getIntent().getStringExtra("date"));
+            dateSelect.setEnabled(false);
+        } else if (requestCode == TodoFragment.REQUEST_ADD_TASK) {
+
+        }
+
+        // database
+        db = FirebaseFirestore.getInstance();
     }
 
     public void onClickDate(View v) {
@@ -106,7 +132,9 @@ public class AddTaskActivity extends AppCompatActivity {
             @Override
             public void onDateSet(DatePicker view, int year, int month, int dayOfMonth) {
                 SimpleDateFormat sdf = new SimpleDateFormat("dd MMM yyyy");
-                textDate.setText(sdf.format(calendar.getTime()));
+                calendar.set(year, month, dayOfMonth);
+                selectedDate = sdf.format(calendar.getTime());
+                textDate.setText(selectedDate);
             }
         }, year, month, day);
 
@@ -115,7 +143,7 @@ public class AddTaskActivity extends AppCompatActivity {
     }
 
     public void onClickTime(View v) {
-        Calendar calendar = Calendar.getInstance();
+        final Calendar calendar = Calendar.getInstance();
         final int hour = calendar.get(Calendar.HOUR);
         final int min = calendar.get(Calendar.MINUTE);
 
@@ -123,20 +151,24 @@ public class AddTaskActivity extends AppCompatActivity {
         TimePickerDialog dialog = new TimePickerDialog(this, new TimePickerDialog.OnTimeSetListener() {
             @Override
             public void onTimeSet(TimePicker view, int hourOfDay, int minute) {
-                String period;
-                if (hourOfDay < 12 || hourOfDay == 0)
-                    period = "AM";
-                else
-                    period = "PM";
-                if (hourOfDay == 0)
-                    hourOfDay = 12;
-                else
-                    hourOfDay %= 12;
-                textTime.setText(hourOfDay + ":" + minute + " " + period);
+                SimpleDateFormat sdf = new SimpleDateFormat("HH:mm");
+                calendar.set(Calendar.HOUR, hourOfDay);
+                calendar.set(Calendar.MINUTE, minute);
+                selectedTime = sdf.format(calendar.getTime());
+
+                // display 12hr format to user
+                sdf.applyPattern("hh:mm a");
+                textTime.setText(sdf.format(calendar.getTime()));
             }
         }, hour, min, false);
 
         if (!dialog.isShowing())
             dialog.show();
+    }
+
+    @Override
+    public boolean onSupportNavigateUp(){
+        finish();
+        return true;
     }
 }
