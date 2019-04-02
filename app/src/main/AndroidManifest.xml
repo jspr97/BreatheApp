@@ -26,7 +26,7 @@
             android:label="@string/title_activity_calendar" />
         <activity
             android:name=".LoginActivity"
-            android:label="@string/title_activity_login">
+            android:label="Breathe App">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
