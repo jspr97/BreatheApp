@@ -8,7 +8,6 @@ import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.Fragment;
-import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.helper.ItemTouchHelper;
@@ -17,11 +16,10 @@ import android.view.View;
 import android.view.ViewGroup;
 
 import com.firebase.ui.firestore.FirestoreRecyclerOptions;
-import com.google.firebase.firestore.CollectionReference;
+import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
 
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Calendar;
 
 /**
@@ -30,17 +28,16 @@ import java.util.Calendar;
  * Activities containing this fragment MUST implement the {@link OnListFragmentInteractionListener}
  * interface.
  */
-public class TodoFragment extends Fragment {
+public class TodoFragment extends Fragment implements TodoRecyclerViewAdapter.OnItemLongClickListener {
 
-    public static final int REQUEST_ADD_TASK = 100;
-
-    // TODO: Customize parameter argument names
+    public static final int REQUEST_ADD_TASK = 1;
+    public static final int REQUEST_EDIT_TASK = 2;
     private static final String ARG_COLUMN_COUNT = "column-count";
-    // TODO: Customize parameters
+
     private OnListFragmentInteractionListener mListener;
     private RecyclerView recyclerView;
     private TodoRecyclerViewAdapter mAdapter;
-    private ArrayList<Task> tasks;
+    private String date;
 
     /**
      * Mandatory empty constructor for the fragment manager to instantiate the
@@ -62,6 +59,9 @@ public class TodoFragment extends Fragment {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        // get today's date
+        SimpleDateFormat sdf = new SimpleDateFormat("dd MMM yyyy");
+        date = sdf.format(Calendar.getInstance().getTime());
     }
 
     @Override
@@ -86,17 +86,15 @@ public class TodoFragment extends Fragment {
         recyclerView = view.findViewById(R.id.list);
         recyclerView.setLayoutManager(new LinearLayoutManager(context));
 
-        // get today's date
-        SimpleDateFormat sdf = new SimpleDateFormat("dd MMM yyyy");
-        String today = sdf.format(Calendar.getInstance().getTime());
-
-        // show today's tasks
-        Query query = mListener.getRef().orderBy("time");
+        // show tasks according to date
+        Query query = FirebaseFirestore.getInstance()
+                .collection("tasks")
+                .whereEqualTo("date", date).orderBy("time");
         FirestoreRecyclerOptions<Task> options = new FirestoreRecyclerOptions.Builder<Task>()
                 .setQuery(query, Task.class)
                 .build();
 
-        mAdapter = new TodoRecyclerViewAdapter(options, mListener);
+        mAdapter = new TodoRecyclerViewAdapter(options, mListener, this);
         recyclerView.setHasFixedSize(true);
         recyclerView.setAdapter(mAdapter);
 
@@ -119,6 +117,7 @@ public class TodoFragment extends Fragment {
             public void onClick(View v) {
                 // go to Add Task activity
                 Intent intent = new Intent(getActivity(), AddTaskActivity.class);
+                intent.putExtra("requestCode", REQUEST_ADD_TASK);
                 startActivityForResult(intent, REQUEST_ADD_TASK);
             }
         });
@@ -146,11 +145,34 @@ public class TodoFragment extends Fragment {
 
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
+        // parent view
+        int viewId;
+        if (getActivity() instanceof CalendarActivity)
+            viewId = R.id.coordinatorLayout;
+        else
+            viewId = R.id.fragmentFrame;
 
-        if (requestCode == REQUEST_ADD_TASK && resultCode == Activity.RESULT_OK) {
-            Snackbar.make(getView(), "Task added", Snackbar.LENGTH_SHORT).show();
+        if ((requestCode == REQUEST_ADD_TASK || requestCode == CalendarActivity.REQUEST_ADD_TASK)
+                && resultCode == Activity.RESULT_OK) {
+            Snackbar.make(getActivity().findViewById(viewId), "Task added", Snackbar.LENGTH_SHORT).show();
+        } else if (requestCode == REQUEST_EDIT_TASK && resultCode == Activity.RESULT_OK) {
+            Snackbar.make(getActivity().findViewById(viewId), "Task updated", Snackbar.LENGTH_SHORT).show();
         }
+    }
+
+    @Override
+    public boolean onLongItemClicked(int position) {
+        String taskId = mAdapter.getSnapshots().getSnapshot(position).getId();
+        Intent intent = new Intent(getActivity(), AddTaskActivity.class);
+        intent.putExtra("id", taskId);
+        intent.putExtra("requestCode", REQUEST_EDIT_TASK);
+        startActivityForResult(intent, REQUEST_EDIT_TASK);
+        return true;
+    }
+
+    // set date from calendar activity
+    public void setDate(String date) {
+        this.date = date;
     }
 
     /**
@@ -165,6 +187,5 @@ public class TodoFragment extends Fragment {
      */
     public interface OnListFragmentInteractionListener {
         void onListFragmentInteraction(Task task);
-        CollectionReference getRef();
     }
 }

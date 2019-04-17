@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "869831594943",
+    "firebase_url": "https://breatheapp-e659c.firebaseio.com",
+    "project_id": "breatheapp-e659c",
+    "storage_bucket": "breatheapp-e659c.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:869831594943:android:5b7adb4db85caf44",
+        "android_client_info": {
+          "package_name": "com.example.breatheapp"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "869831594943-gqeha5hbnh2qpadv799f0guhu0heqqak.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.breatheapp",
+            "certificate_hash": "47084db26dd1d2b71b200187723788958191550a"
+          }
+        },
+        {
+          "client_id": "869831594943-vvfkmeo7mjas2o2qgh9g61aoe0fak248.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDj1sWia17087TKkmXcbVnFLiUNd1bwlKg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "869831594943-vvfkmeo7mjas2o2qgh9g61aoe0fak248.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

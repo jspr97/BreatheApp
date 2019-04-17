@@ -2,6 +2,7 @@ package com.example.breatheapp;
 
 import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.design.widget.AppBarLayout;
@@ -10,22 +11,26 @@ import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
-import android.util.Log;
 import android.view.View;
 import android.widget.DatePicker;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.TimePicker;
+import android.widget.Toast;
 
+import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.Date;
 
 public class AddTaskActivity extends AppCompatActivity {
 
@@ -37,6 +42,8 @@ public class AddTaskActivity extends AppCompatActivity {
     private LinearLayout dateSelect;
     private FirebaseFirestore db;
     private String selectedDate, selectedTime;
+    private int requestCode;
+    private String taskId;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -71,54 +78,104 @@ public class AddTaskActivity extends AppCompatActivity {
             }
         });
 
+        // database
+        db = FirebaseFirestore.getInstance();
+
+        // initialize fields
+        editTaskName = findViewById(R.id.taskName);
+        dateSelect = findViewById(R.id.dateSelect);
+        textDate = findViewById(R.id.textDate);
+        textTime = findViewById(R.id.time);
+
+        // check previous activity
+        requestCode = getIntent().getIntExtra("requestCode", -1);
+        if (requestCode == CalendarActivity.REQUEST_ADD_TASK){
+            // set calendar selected date
+            selectedDate = getIntent().getStringExtra("date");
+            textDate.setText(selectedDate);
+            dateSelect.setEnabled(false);
+        } else if (requestCode == TodoFragment.REQUEST_ADD_TASK) {
+            // set today's date
+            SimpleDateFormat sdf = new SimpleDateFormat("dd MMM yyyy");
+            selectedDate = sdf.format(Calendar.getInstance().getTime());
+            textDate.setText(selectedDate);
+        } else if (requestCode == TodoFragment.REQUEST_EDIT_TASK) {
+            // put existing task details
+            taskId = getIntent().getStringExtra("id");
+            db.collection("tasks").document(taskId).get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
+                @Override
+                public void onComplete(@NonNull com.google.android.gms.tasks.Task<DocumentSnapshot> task) {
+                    if (task.isSuccessful()) {
+                        DocumentSnapshot documentSnapshot = task.getResult();
+                        if (documentSnapshot.exists()) {
+                            editTaskName.setText(documentSnapshot.getString("name"));
+                            selectedDate = documentSnapshot.getString("date");
+                            textDate.setText(selectedDate);
+                            if (documentSnapshot.getString("time") != null) {
+                                selectedTime = documentSnapshot.getString("time");
+                                // parse and convert to 12hr format
+                                SimpleDateFormat sdf = new SimpleDateFormat("HH:mm");
+                                try {
+                                    Date date = sdf.parse(selectedTime);
+                                    sdf.applyPattern("hh:mm a");
+                                    textTime.setText(sdf.format(date));
+                                } catch (ParseException e) {
+                                    e.printStackTrace();
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // save button
         FloatingActionButton fab = findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onClick(View view) {
+            public void onClick(final View view) {
                 // save task details
                 String name = editTaskName.getText().toString().trim();
                 if (name.isEmpty()) {
                     Snackbar.make(view, "Task name is required", Snackbar.LENGTH_SHORT).show();
+                } else if (requestCode == TodoFragment.REQUEST_EDIT_TASK) {
+                    // update task
+                    DocumentReference taskRef = db.collection("tasks").document(taskId);
+                    taskRef.update("name", name, "date", selectedDate, "time", selectedTime)
+                            .addOnSuccessListener(new OnSuccessListener<Void>() {
+                                @Override
+                                public void onSuccess(Void aVoid) {
+                                    setResult(RESULT_OK);
+                                    finish();
+                                }
+                            })
+                            .addOnFailureListener(new OnFailureListener() {
+                                @Override
+                                public void onFailure(@NonNull Exception e) {
+                                    Toast.makeText(view.getContext(), e.getMessage(), Toast.LENGTH_LONG).show();
+                                }
+                            });
                 } else {
+                    // save as new task
                     Task newTask = new Task(name, selectedDate, selectedTime, "user", false);
                     CollectionReference ref = FirebaseFirestore.getInstance().collection("tasks");
                     ref.add(newTask)
                             .addOnSuccessListener(new OnSuccessListener<DocumentReference>() {
                                 @Override
                                 public void onSuccess(DocumentReference documentReference) {
-                                    Log.i(TAG, "Added to database");
+                                    setResult(RESULT_OK);
+                                    finish();
                                 }
                             })
                             .addOnFailureListener(new OnFailureListener() {
                                 @Override
                                 public void onFailure(@NonNull Exception e) {
-                                    Log.i(TAG, "Fail to add");
+                                    Toast.makeText(view.getContext(), e.getMessage(), Toast.LENGTH_LONG).show();
                                 }
                             });
-                    finish();
                 }
             }
         });
-
-        // initialize fields
-        editTaskName = findViewById(R.id.taskName);
-        dateSelect = findViewById(R.id.dateSelect);
-        textDate = findViewById(R.id.textDate);
-        SimpleDateFormat sdf = new SimpleDateFormat("dd MMM yyyy");
-        selectedDate = sdf.format(Calendar.getInstance().getTime()); // default today's date
-        textDate.setText(selectedDate);
-        textTime = findViewById(R.id.time);
-
-        int requestCode = getIntent().getIntExtra("request_code", -1);
-        if (requestCode == CalendarActivity.REQUEST_ADD_TASK){
-            textDate.setText(getIntent().getStringExtra("date"));
-            dateSelect.setEnabled(false);
-        } else if (requestCode == TodoFragment.REQUEST_ADD_TASK) {
-
-        }
-
-        // database
-        db = FirebaseFirestore.getInstance();
     }
 
     public void onClickDate(View v) {

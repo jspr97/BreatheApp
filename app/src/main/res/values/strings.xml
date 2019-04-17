@@ -6,9 +6,8 @@
     <string name="nav_header_subtitle">android.studio@android.com</string>
     <string name="nav_header_desc">Navigation header</string>
     <string name="action_settings">Settings</string>
-    <string name="default_web_client_id">AIzaSyAesz8AM7btsuF7SEWtK678rsJOyv1HoE0</string>
+    <string name="web_client_id">AIzaSyAesz8AM7btsuF7SEWtK678rsJOyv1HoE0</string>
 
-    <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
     <string name="title_activity_calendar">Calendar</string>
     <string name="title_activity_login">Sign in</string>

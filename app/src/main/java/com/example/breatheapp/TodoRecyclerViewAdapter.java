@@ -3,7 +3,6 @@ package com.example.breatheapp;
 import android.graphics.Paint;
 import android.support.annotation.NonNull;
 import android.support.v7.widget.RecyclerView;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -14,6 +13,9 @@ import android.widget.TextView;
 import com.example.breatheapp.TodoFragment.OnListFragmentInteractionListener;
 import com.firebase.ui.firestore.FirestoreRecyclerAdapter;
 import com.firebase.ui.firestore.FirestoreRecyclerOptions;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.DocumentSnapshot;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -24,13 +26,20 @@ import java.util.Date;
  */
 public class TodoRecyclerViewAdapter extends FirestoreRecyclerAdapter<Task,TodoRecyclerViewAdapter.ViewHolder> {
 
-    //private final ArrayList<Task> mValues;
-    private final OnListFragmentInteractionListener mListener;
+    public interface OnItemLongClickListener {
+        public boolean onLongItemClicked(int position);
+    }
 
-    public TodoRecyclerViewAdapter(@NonNull FirestoreRecyclerOptions<Task> options, OnListFragmentInteractionListener listener) {
+    private final OnListFragmentInteractionListener mListener;
+    private OnItemLongClickListener mLongClickListener;
+
+    public TodoRecyclerViewAdapter(@NonNull FirestoreRecyclerOptions<Task> options,
+                                   OnListFragmentInteractionListener listener,
+                                   OnItemLongClickListener longClickListener) {
         super(options);
         //mValues = items;
         mListener = listener;
+        mLongClickListener = longClickListener;
     }
 
     @NonNull
@@ -46,9 +55,10 @@ public class TodoRecyclerViewAdapter extends FirestoreRecyclerAdapter<Task,TodoR
     }
 
     @Override
-    public void onBindViewHolder(@NonNull final ViewHolder holder, int position, @NonNull Task model) {
-        //holder.mItem = mValues.get(position);
+    public void onBindViewHolder(@NonNull final ViewHolder holder, final int position, @NonNull final Task model) {
+        // set task name
         holder.mTaskView.setText(model.getName());
+
         // if time not specified, hide label
         if (model.getTime() == null)
             holder.mTimeView.setVisibility(View.GONE);
@@ -59,25 +69,37 @@ public class TodoRecyclerViewAdapter extends FirestoreRecyclerAdapter<Task,TodoR
                 Date date = sdf.parse(model.getTime());
                 sdf.applyPattern("hh:mm a");
                 holder.mTimeView.setText(sdf.format(date));
+                holder.mTimeView.setVisibility(View.VISIBLE);
             } catch (ParseException e) {
                 e.printStackTrace();
             }
         }
 
+        // set checkbox
+        holder.mCheckBox.setChecked(model.getDone());
+
         holder.mView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 if (null != mListener) {
-                    // Notify the active callbacks interface (the activity, if the
-                    // fragment is attached to one) that an item has been selected.
                     mListener.onListFragmentInteraction(holder.mItem);
-                    holder.mCheckBox.setChecked(!holder.mCheckBox.isChecked());
+
+                    // toggle whether task is done
+                    DocumentSnapshot documentSnapshot = getSnapshots().getSnapshot(position);
+                    final Boolean done = !documentSnapshot.getBoolean("done");
+                    documentSnapshot.getReference().update("done", done);
                 }
             }
         });
-        if (model.getName() == null)
-            Log.d("NAME: ", "notfound");
-        Log.d("DATE: ", model.getDate());
+
+        holder.mView.setOnLongClickListener(new View.OnLongClickListener() {
+            @Override
+            public boolean onLongClick(View view) {
+                // edit task details
+                mLongClickListener.onLongItemClicked(position);
+                return true;
+            }
+        });
     }
 
     public class ViewHolder extends RecyclerView.ViewHolder {
