@@ -3,6 +3,7 @@ package com.example.breatheapp;
 import android.graphics.Paint;
 import android.support.annotation.NonNull;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -27,8 +28,11 @@ import java.util.Date;
 public class TodoRecyclerViewAdapter extends FirestoreRecyclerAdapter<Task,TodoRecyclerViewAdapter.ViewHolder> {
 
     public interface OnItemLongClickListener {
-        public boolean onLongItemClicked(int position);
+        boolean onLongItemClicked(int position);
     }
+
+    private static final int TASK_SOLO = 1;
+    private static final int TASK_SHARED = 2;
 
     private final OnListFragmentInteractionListener mListener;
     private OnItemLongClickListener mLongClickListener;
@@ -37,7 +41,6 @@ public class TodoRecyclerViewAdapter extends FirestoreRecyclerAdapter<Task,TodoR
                                    OnListFragmentInteractionListener listener,
                                    OnItemLongClickListener longClickListener) {
         super(options);
-        //mValues = items;
         mListener = listener;
         mLongClickListener = longClickListener;
     }
@@ -45,9 +48,18 @@ public class TodoRecyclerViewAdapter extends FirestoreRecyclerAdapter<Task,TodoR
     @NonNull
     @Override
     public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        View view = LayoutInflater.from(parent.getContext())
-                .inflate(R.layout.task_item, parent, false);
-        return new ViewHolder(view);
+        // inflate different views for solo and shared tasks
+        if (viewType == TASK_SOLO) {
+            View view = LayoutInflater.from(parent.getContext())
+                    .inflate(R.layout.task_item, parent, false);
+            return new ViewHolder(view);
+        } else if (viewType == TASK_SHARED) {
+            View view = LayoutInflater.from(parent.getContext())
+                    .inflate(R.layout.task_item_shared, parent, false);
+            return new ViewHolderShared(view);
+        } else {
+            throw new RuntimeException("Task viewholder error");
+        }
     }
 
     public void deleteItem(int position) {
@@ -55,11 +67,28 @@ public class TodoRecyclerViewAdapter extends FirestoreRecyclerAdapter<Task,TodoR
     }
 
     @Override
+    public int getItemViewType(int position) {
+        Task task = getSnapshots().getSnapshot(position).toObject(Task.class);
+
+        // check whether task is shared
+        if (task.getUsers().size() ==  1)
+            return TASK_SOLO;
+        else if (task.getUsers().size() > 1)
+            return TASK_SHARED;
+        else return -1;
+    }
+
+    @Override
     public void onBindViewHolder(@NonNull final ViewHolder holder, final int position, @NonNull final Task model) {
         // set task name
         holder.mTaskView.setText(model.getName());
 
-        // if time not specified, hide label
+        // set date and email for shared tasks
+        if (holder.getItemViewType() == TASK_SHARED) {
+            ((ViewHolderShared) holder).mDateView.setText(model.getDate());
+            ((ViewHolderShared) holder).mEmailView.setText(model.getUsers().get(0));
+        }
+        // if time not specified, hide textview
         if (model.getTime() == null)
             holder.mTimeView.setVisibility(View.GONE);
         else {
@@ -83,11 +112,12 @@ public class TodoRecyclerViewAdapter extends FirestoreRecyclerAdapter<Task,TodoR
             public void onClick(View v) {
                 if (null != mListener) {
                     mListener.onListFragmentInteraction(holder.mItem);
-
+                    Log.i("TAG1", Boolean.toString(model.getDone()));
                     // toggle whether task is done
                     DocumentSnapshot documentSnapshot = getSnapshots().getSnapshot(position);
-                    final Boolean done = !documentSnapshot.getBoolean("done");
+                    Boolean done = !documentSnapshot.getBoolean("done");
                     documentSnapshot.getReference().update("done", done);
+                    Log.i("TAG2", Boolean.toString(model.getDone()));
                 }
             }
         });
@@ -102,6 +132,7 @@ public class TodoRecyclerViewAdapter extends FirestoreRecyclerAdapter<Task,TodoR
         });
     }
 
+    // view for solo task
     public class ViewHolder extends RecyclerView.ViewHolder {
         public View mView;
         public CheckBox mCheckBox;
@@ -130,6 +161,17 @@ public class TodoRecyclerViewAdapter extends FirestoreRecyclerAdapter<Task,TodoR
         @Override
         public String toString() {
             return super.toString() + " '" + mTaskView.getText() + "'";
+        }
+    }
+
+    // view for shared task
+    public class ViewHolderShared extends ViewHolder {
+        public TextView mDateView, mEmailView;
+
+        public ViewHolderShared(View view) {
+            super(view);
+            mDateView = view.findViewById(R.id.date);
+            mEmailView = view.findViewById(R.id.email);
         }
     }
 }

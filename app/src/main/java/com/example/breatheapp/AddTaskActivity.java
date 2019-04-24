@@ -2,7 +2,6 @@ package com.example.breatheapp;
 
 import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
-import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.design.widget.AppBarLayout;
@@ -12,9 +11,11 @@ import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.View;
+import android.widget.ArrayAdapter;
 import android.widget.DatePicker;
 import android.widget.EditText;
 import android.widget.LinearLayout;
+import android.widget.MultiAutoCompleteTextView;
 import android.widget.TextView;
 import android.widget.TimePicker;
 import android.widget.Toast;
@@ -22,6 +23,7 @@ import android.widget.Toast;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
@@ -29,12 +31,16 @@ import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 
 public class AddTaskActivity extends AppCompatActivity {
 
     private static final String TAG = "AddTaskActivity";
+    private static final String[] EMAILS = new String[]{
+            "lawrenceykj97@gmail.com","alvinlow10288558@gmail.com"};
     private CollapsingToolbarLayout collapsingToolbar;
     private AppBarLayout appBar;
     private EditText editTaskName;
@@ -44,6 +50,8 @@ public class AddTaskActivity extends AppCompatActivity {
     private String selectedDate, selectedTime;
     private int requestCode;
     private String taskId;
+    private MultiAutoCompleteTextView textEmails;
+    private String users;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -86,6 +94,10 @@ public class AddTaskActivity extends AppCompatActivity {
         dateSelect = findViewById(R.id.dateSelect);
         textDate = findViewById(R.id.textDate);
         textTime = findViewById(R.id.time);
+        textEmails = findViewById(R.id.emailsTextView);
+        textEmails.setAdapter(new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, EMAILS));
+        textEmails.setTokenizer(new MultiAutoCompleteTextView.CommaTokenizer());
+        textEmails.setThreshold(1);
 
         // check previous activity
         requestCode = getIntent().getIntExtra("requestCode", -1);
@@ -99,20 +111,22 @@ public class AddTaskActivity extends AppCompatActivity {
             SimpleDateFormat sdf = new SimpleDateFormat("dd MMM yyyy");
             selectedDate = sdf.format(Calendar.getInstance().getTime());
             textDate.setText(selectedDate);
-        } else if (requestCode == TodoFragment.REQUEST_EDIT_TASK) {
+        } else if (requestCode == TodoFragment.REQUEST_EDIT_TASK || requestCode == TodoFragment.REQUEST_EDIT_TASK_SHARED) {
             // put existing task details
             taskId = getIntent().getStringExtra("id");
-            db.collection("tasks").document(taskId).get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
+            String collectionPath = (requestCode == TodoFragment.REQUEST_EDIT_TASK) ? "tasks" : "sharedTasks";
+            db.collection(collectionPath).document(taskId).get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
                 @Override
                 public void onComplete(@NonNull com.google.android.gms.tasks.Task<DocumentSnapshot> task) {
                     if (task.isSuccessful()) {
                         DocumentSnapshot documentSnapshot = task.getResult();
                         if (documentSnapshot.exists()) {
-                            editTaskName.setText(documentSnapshot.getString("name"));
-                            selectedDate = documentSnapshot.getString("date");
+                            Task existingTask = documentSnapshot.toObject(Task.class);
+                            editTaskName.setText(existingTask.getName());
+                            selectedDate = existingTask.getDate();
                             textDate.setText(selectedDate);
-                            if (documentSnapshot.getString("time") != null) {
-                                selectedTime = documentSnapshot.getString("time");
+                            if (existingTask.getDate() != null) {
+                                selectedTime = existingTask.getDate();
                                 // parse and convert to 12hr format
                                 SimpleDateFormat sdf = new SimpleDateFormat("HH:mm");
                                 try {
@@ -123,25 +137,55 @@ public class AddTaskActivity extends AppCompatActivity {
                                     e.printStackTrace();
                                 }
                             }
+                            if (existingTask.getUsers().size() > 1) {
+                                String usersString = "";
+                                for (int i=1; i<existingTask.getUsers().size(); i++) {
+                                    usersString += existingTask.getUsers().get(i) + ", ";
+                                }
+                                textEmails.setText(usersString.substring(0,usersString.length()-2));
+                            }
                         }
                     }
                 }
             });
         }
 
+        users = FirebaseAuth.getInstance().getCurrentUser().getEmail();
+
         // save button
         FloatingActionButton fab = findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(final View view) {
-                // save task details
                 String name = editTaskName.getText().toString().trim();
+                String emailsString = textEmails.getText().toString().trim();
+                String[] emailArray = new String[]{};
+
+                // check valid email
+                if (!emailsString.isEmpty()) {
+                    emailArray = emailsString.split("\\s*,\\s*");  // split by comma
+                    for (String s : emailArray) {
+                        if (!s.matches("[a-z0-9._%+-]+@gmail.com")) {
+                            Snackbar.make(view, "Invalid email(s)", Snackbar.LENGTH_SHORT).show();
+                            return;
+                        }
+                    }
+                }
+
+                ArrayList<String> users = new ArrayList<>();
+                users.add(FirebaseAuth.getInstance().getCurrentUser().getEmail());
+                users.addAll(Arrays.asList(emailArray));
+
+                String collectionPath = users.size()>1 ? "sharedTasks" : "tasks";
+
+                // check task name is empty
                 if (name.isEmpty()) {
                     Snackbar.make(view, "Task name is required", Snackbar.LENGTH_SHORT).show();
                 } else if (requestCode == TodoFragment.REQUEST_EDIT_TASK) {
                     // update task
-                    DocumentReference taskRef = db.collection("tasks").document(taskId);
-                    taskRef.update("name", name, "date", selectedDate, "time", selectedTime)
+                    DocumentReference taskRef = db.collection(collectionPath).document(taskId);
+                    taskRef.update("name", name, "date", selectedDate, "time",
+                            selectedTime, "users", users)
                             .addOnSuccessListener(new OnSuccessListener<Void>() {
                                 @Override
                                 public void onSuccess(Void aVoid) {
@@ -157,8 +201,8 @@ public class AddTaskActivity extends AppCompatActivity {
                             });
                 } else {
                     // save as new task
-                    Task newTask = new Task(name, selectedDate, selectedTime, "user", false);
-                    CollectionReference ref = FirebaseFirestore.getInstance().collection("tasks");
+                    Task newTask = new Task(name, selectedDate, selectedTime, false, users);
+                    CollectionReference ref = FirebaseFirestore.getInstance().collection(collectionPath);
                     ref.add(newTask)
                             .addOnSuccessListener(new OnSuccessListener<DocumentReference>() {
                                 @Override

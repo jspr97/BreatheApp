@@ -16,6 +16,7 @@ import android.view.View;
 import android.view.ViewGroup;
 
 import com.firebase.ui.firestore.FirestoreRecyclerOptions;
+import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
 
@@ -32,12 +33,16 @@ public class TodoFragment extends Fragment implements TodoRecyclerViewAdapter.On
 
     public static final int REQUEST_ADD_TASK = 1;
     public static final int REQUEST_EDIT_TASK = 2;
-    private static final String ARG_COLUMN_COUNT = "column-count";
+    public static final int REQUEST_EDIT_TASK_SHARED = 3;
+    public static final int MODE_SOLO = 3;
+    public static final int MODE_SHARED = 4;
+    private static final String ARG_MODE = "mode";
 
     private OnListFragmentInteractionListener mListener;
     private RecyclerView recyclerView;
     private TodoRecyclerViewAdapter mAdapter;
     private String date;
+    private int mode;
 
     /**
      * Mandatory empty constructor for the fragment manager to instantiate the
@@ -48,10 +53,10 @@ public class TodoFragment extends Fragment implements TodoRecyclerViewAdapter.On
 
     // TODO: Customize parameter initialization
     @SuppressWarnings("unused")
-    public static TodoFragment newInstance(int columnCount) {
+    public static TodoFragment newInstance(int mode) {
         TodoFragment fragment = new TodoFragment();
         Bundle args = new Bundle();
-        args.putInt(ARG_COLUMN_COUNT, columnCount);
+        args.putInt(ARG_MODE, mode);
         fragment.setArguments(args);
         return fragment;
     }
@@ -59,6 +64,8 @@ public class TodoFragment extends Fragment implements TodoRecyclerViewAdapter.On
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        mode = getArguments().getInt(ARG_MODE, MODE_SOLO);
+
         // get today's date
         SimpleDateFormat sdf = new SimpleDateFormat("dd MMM yyyy");
         date = sdf.format(Calendar.getInstance().getTime());
@@ -86,10 +93,19 @@ public class TodoFragment extends Fragment implements TodoRecyclerViewAdapter.On
         recyclerView = view.findViewById(R.id.list);
         recyclerView.setLayoutManager(new LinearLayoutManager(context));
 
+        Query query;
         // show tasks according to date
-        Query query = FirebaseFirestore.getInstance()
-                .collection("tasks")
-                .whereEqualTo("date", date).orderBy("time");
+        if (mode == MODE_SOLO) {
+            query = FirebaseFirestore.getInstance()
+                    .collection("tasks")
+                    .whereArrayContains("users", FirebaseAuth.getInstance().getCurrentUser().getEmail())
+                    .whereEqualTo("date", date).orderBy("time");
+        } else {
+            query = FirebaseFirestore.getInstance()
+                    .collection("sharedTasks")
+                    .whereArrayContains("users", FirebaseAuth.getInstance().getCurrentUser().getEmail())
+                    .orderBy("date").orderBy("time");
+        }
         FirestoreRecyclerOptions<Task> options = new FirestoreRecyclerOptions.Builder<Task>()
                 .setQuery(query, Task.class)
                 .build();
@@ -165,7 +181,10 @@ public class TodoFragment extends Fragment implements TodoRecyclerViewAdapter.On
         String taskId = mAdapter.getSnapshots().getSnapshot(position).getId();
         Intent intent = new Intent(getActivity(), AddTaskActivity.class);
         intent.putExtra("id", taskId);
-        intent.putExtra("requestCode", REQUEST_EDIT_TASK);
+        if (mode == MODE_SOLO)
+            intent.putExtra("requestCode", REQUEST_EDIT_TASK);
+        else
+            intent.putExtra("requestCode", REQUEST_EDIT_TASK_SHARED);
         startActivityForResult(intent, REQUEST_EDIT_TASK);
         return true;
     }

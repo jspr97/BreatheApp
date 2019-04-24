@@ -19,7 +19,6 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.google.firebase.auth.FirebaseAuth;
@@ -121,35 +120,30 @@ public class MainActivity extends AppCompatActivity
         // Handle navigation view item clicks here.
         int id = item.getItemId();
 
-        Fragment fragment = null;
-        Class fragmentClass = HomeFragment.class;
-
         if (id == R.id.nav_home) {
-            fragmentClass = HomeFragment.class;
             setTitle("Home");
+            Fragment fragment = HomeFragment.newInstance();
+            getSupportFragmentManager().beginTransaction()
+                    .replace(R.id.fragmentFrame, fragment).commit();
         } else if (id == R.id.nav_todo) {
-            fragmentClass = TodoFragment.class;
             setTitle("To Do List");
+            Fragment fragment = TodoFragment.newInstance(TodoFragment.MODE_SOLO);
+            getSupportFragmentManager().beginTransaction()
+                    .replace(R.id.fragmentFrame, fragment).commit();
         } else if (id == R.id.nav_calendar) {
             Intent calendar = new Intent(this, CalendarActivity.class);
             startActivity(calendar);
         } else if (id == R.id.nav_shared) {
-
+            setTitle("Shared Tasks");
+            Fragment fragment = TodoFragment.newInstance(TodoFragment.MODE_SHARED);
+            getSupportFragmentManager().beginTransaction()
+                    .replace(R.id.fragmentFrame, fragment).commit();
         } else if (id == R.id.nav_settings) {
             Intent intent = new Intent(this, SettingsActivity.class);
             startActivity(intent);
         }
 
-        try {
-            fragment = (Fragment) fragmentClass.newInstance();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        FragmentManager fragmentManager = getSupportFragmentManager();
-        fragmentManager.beginTransaction().replace(R.id.fragmentFrame, fragment).commit();
-
-        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
+        DrawerLayout drawer = findViewById(R.id.drawer_layout);
         drawer.closeDrawers();
         return true;
     }
