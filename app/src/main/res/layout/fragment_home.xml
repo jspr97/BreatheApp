@@ -87,6 +87,31 @@
             tools:text="Lorem Ipsum" />
     </android.support.v7.widget.CardView>
 
+    <android.support.design.widget.FloatingActionButton
+        android:id="@+id/btnMusic"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:src="@drawable/ic_play_arrow_black_48dp"
+        android:tint="@android:color/white"
+        android:visibility="visible"
+        app:elevation="4dp"
+        app:fabCustomSize="64dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/cardView" />
+
+    <ProgressBar
+        android:id="@+id/progressBarMusic"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="76dp"
+        android:layout_height="76dp"
+        android:progressDrawable="@drawable/progress_bar_music"
+        app:layout_constraintBottom_toBottomOf="@id/btnMusic"
+        app:layout_constraintEnd_toEndOf="@id/btnMusic"
+        app:layout_constraintStart_toStartOf="@id/btnMusic"
+        app:layout_constraintTop_toTopOf="@id/btnMusic" />
+
     <android.support.constraint.Group
         android:id="@+id/group"
         android:layout_width="wrap_content"

@@ -3,15 +3,18 @@ package com.example.breatheapp;
 import android.animation.Animator;
 import android.animation.ObjectAnimator;
 import android.animation.ValueAnimator;
+import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
+import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.constraint.ConstraintLayout;
 import android.support.constraint.Group;
+import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.Fragment;
 import android.support.v7.widget.CardView;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -21,14 +24,14 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import com.google.android.gms.tasks.OnCompleteListener;
-import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
 
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.Timer;
+import java.util.TimerTask;
 
 
 /**
@@ -42,11 +45,14 @@ import java.util.Calendar;
 public class HomeFragment extends Fragment {
     private OnFragmentInteractionListener mListener;
     private TextView textTaskCount, textInfo;
-    private ProgressBar progressBar, loading;
+    private ProgressBar progressBar, loading, progressBarMusic;
     private ConstraintLayout visualizer;
     private Group visualizerGroup;
     private CardView cardView;
     private int taskCount = 0;
+    private FloatingActionButton btnMusic;
+    private Timer timer;
+    private MediaPlayer mp;
 
     public HomeFragment() {
         // Required empty public constructor
@@ -74,10 +80,71 @@ public class HomeFragment extends Fragment {
         loading = view.findViewById(R.id.loadingBar);
         visualizerGroup = view.findViewById(R.id.group);
         cardView = view.findViewById(R.id.cardView);
+        progressBarMusic = view.findViewById(R.id.progressBarMusic);
+        btnMusic = view.findViewById(R.id.btnMusic);
+
+        mp = MediaPlayer.create(getContext(), R.raw.chopin_nocturne_9_2);
+        btnMusic.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                // play music
+                if (!mp.isPlaying()) {
+                    mp.start();
+                    btnMusic.setImageResource(R.drawable.ic_pause_black_48dp);
+                    progressBarMusic.setMax(mp.getDuration());
+                    progressBarMusic.setVisibility(View.VISIBLE);
+                    timer = new Timer();
+                    timer.scheduleAtFixedRate(new TimerTask() {
+                        @Override
+                        public void run() {
+                            getActivity().runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    if (mp != null && mp.isPlaying()) {
+                                        progressBarMusic.post(new Runnable() {
+                                            @Override
+                                            public void run() {
+                                                progressBarMusic.setProgress(mp.getCurrentPosition());
+                                            }
+                                        });
+                                    } else {
+                                        timer.cancel();
+                                        timer.purge();
+                                    }
+                                }
+                            });
+                        }
+                    }, 0, 1000);
+                } else {    // pause music
+                    mp.pause();
+                    btnMusic.setImageResource(R.drawable.ic_play_arrow_black_48dp);
+                }
+            }
+        });
+        mp.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
+            @Override
+            public void onCompletion(MediaPlayer mediaPlayer) {
+                btnMusic.setImageResource(R.drawable.ic_play_arrow_black_48dp);
+                progressBarMusic.setProgress(0);
+                AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+                AlertDialog dialog = builder.setTitle("Well Rested!")
+                        .setMessage("You are all set!")
+                        .setNeutralButton("OK", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialogInterface, int i) {
+                                dialogInterface.dismiss();
+                            }
+                        })
+                        .create();
+                dialog.show();
+            }
+        });
 
         loading.setVisibility(View.VISIBLE);
         visualizerGroup.setVisibility(View.INVISIBLE);
         cardView.setVisibility(View.INVISIBLE);
+        btnMusic.hide();
+        progressBarMusic.setVisibility(View.INVISIBLE);
 
         // get task count
         SimpleDateFormat sdf = new SimpleDateFormat("dd MMM yyyy");
@@ -111,6 +178,11 @@ public class HomeFragment extends Fragment {
     @Override
     public void onDetach() {
         super.onDetach();
+        if (mp.isPlaying()) {
+            mp.stop();
+            timer.cancel();
+            timer.purge();
+        }
         mListener = null;
     }
 
@@ -175,11 +247,13 @@ public class HomeFragment extends Fragment {
         if (taskCount == 0) {
             textInfo.setText("No tasks today! Go enjoy!");
         } else if (taskCount <= 4) {
-            textInfo.setText("Only few tasks today");
+            textInfo.setText("Only few tasks to be done");
         } else if (taskCount <= 8) {
-            textInfo.setText("A lot of tasks today");
+            textInfo.setText("A lot of tasks to be done. Care for a music?");
+            btnMusic.show();
         } else {
-            textInfo.setText("Too many tasks today!");
+            textInfo.setText("Too many tasks to be done! Take a breather.");
+            btnMusic.show();
         }
         cardView.setVisibility(View.VISIBLE);
         cardView.startAnimation(AnimationUtils.loadAnimation(getContext(), R.anim.slide_up));

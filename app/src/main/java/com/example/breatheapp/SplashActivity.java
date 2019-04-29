@@ -7,6 +7,9 @@ import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 
 public class SplashActivity extends AppCompatActivity {
+
+    private static final int REQUEST_CODE = 99;
+
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -15,9 +18,14 @@ public class SplashActivity extends AppCompatActivity {
 
         // if already not logged in
         if (pref.getBoolean("login", false)) {
-            startActivity(new Intent(this, LoginActivity.class));
+            startActivityForResult(new Intent(this, MainActivity.class), REQUEST_CODE);
         } else {
-            startActivity(new Intent(this, MainActivity.class));
+            startActivity(new Intent(this, LoginActivity.class));
         }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        startActivity(new Intent(this, LoginActivity.class));
     }
 }
