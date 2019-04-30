@@ -25,6 +25,7 @@ import android.widget.TextView;
 
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
+import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QuerySnapshot;
 
@@ -150,6 +151,7 @@ public class HomeFragment extends Fragment {
         SimpleDateFormat sdf = new SimpleDateFormat("dd MMM yyyy");
         String date = sdf.format(Calendar.getInstance().getTime());
         FirebaseFirestore.getInstance().collection("tasks")
+                .whereArrayContains("users", FirebaseAuth.getInstance().getCurrentUser().getEmail())
                 .whereEqualTo("date", date).whereEqualTo("done", false).get()
                 .addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
                     @Override

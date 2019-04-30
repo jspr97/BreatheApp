@@ -64,6 +64,7 @@ public class TodoFragment extends Fragment implements TodoRecyclerViewAdapter.On
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        if (getArguments() != null)
         mode = getArguments().getInt(ARG_MODE, MODE_SOLO);
 
         // get today's date
@@ -95,16 +96,17 @@ public class TodoFragment extends Fragment implements TodoRecyclerViewAdapter.On
 
         Query query;
         // show tasks according to date
-        if (mode == MODE_SOLO) {
-            query = FirebaseFirestore.getInstance()
-                    .collection("tasks")
-                    .whereArrayContains("users", FirebaseAuth.getInstance().getCurrentUser().getEmail())
-                    .whereEqualTo("date", date).orderBy("time");
-        } else {
+        if (mode == MODE_SHARED) {
             query = FirebaseFirestore.getInstance()
                     .collection("sharedTasks")
                     .whereArrayContains("users", FirebaseAuth.getInstance().getCurrentUser().getEmail())
                     .orderBy("date").orderBy("time");
+        }
+        else {
+            query = FirebaseFirestore.getInstance()
+                    .collection("tasks")
+                    .whereArrayContains("users", FirebaseAuth.getInstance().getCurrentUser().getEmail())
+                    .whereEqualTo("date", date).orderBy("time");
         }
         FirestoreRecyclerOptions<Task> options = new FirestoreRecyclerOptions.Builder<Task>()
                 .setQuery(query, Task.class)
